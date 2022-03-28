@@ -26,9 +26,10 @@ const UserSchema = Schema({
     suscription: {
         type: String,
     },
-    provider: {
+    f_uid: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 

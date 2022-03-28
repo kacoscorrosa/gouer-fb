@@ -21,7 +21,7 @@ const validateToken = async(req, res = response, next) => {
 
         let user = userInfo;
 
-        if (req.url !== '/validate') {
+        if (req.url !== '/me') {
             user = await User.findOne( {email: userInfo.email })
         }
 

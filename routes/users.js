@@ -10,27 +10,41 @@ const { validEmail,
         validateUserByID } = require('../helpers/validators');
 
 const { validateFields } = require('../middlewares/validate-fields');
+const { isAdminRole, validateRoleAuth } = require('../middlewares/validate-roles');
+const { validateToken } = require('../middlewares/validate-token');
 
 const router = Router();
 
-router.post('/',[
-    check('name', 'Name is requerid').not().isEmpty(),
-    check('surname', 'Surname is required').not().isEmpty(),
-    check('email', 'Email is requerid').not().isEmpty(),
+router.post('/create',[
+    check('name', 'Name is required').not().isEmpty(),
+    check('email', 'Email is required').not().isEmpty(),
     check('email', 'Invalid email').isEmail(),
     check('email').custom( validEmail ),
-    check('password', 'The password must contain at least 6 digits').isLength({ min: 6 }),
+    check('password', 'The password must contain a minimum of 6 digits').isLength({ min: 6 }),
+    check('rol', 'Role is required').not().isEmpty(),
+    check('rol').isIn(['user_role']),
     validateFields
 ], createUser );
 
-router.get('/', getUsers );
+router.get('/', [
+    validateToken,
+    isAdminRole
+], getUsers );
 
 router.put('/:id', [
+    validateToken,
+    validateRoleAuth,
     check('id', 'Invalid ID').isMongoId(),
-    check('id').custom( validateUserByID ),
+    check('id').custom(validateUserByID),
     validateFields
 ], updateUser );
 
-router.delete('/', deleteUser );
+router.delete('/:id', [
+    validateToken,
+    validateRoleAuth,
+    check('id', 'Invalid ID').isMongoId(),
+    check('id').custom(validateUserByID),
+    validateFields
+], deleteUser );
 
 module.exports = router;

@@ -5,18 +5,24 @@ const admin = require('../database/firebase');
 const createUser = async(req, res = response) => {
 
     const name = req.body.name.toLowerCase();
-    const surname = req.body.surname.toLowerCase();
+    let surname = req.body.surname;
 
-    const { email, password } = req.body;
+    if (surname) {
+        surname = req.body.surname.toLowerCase();
+    }
+
+    const { email, password, rol } = req.body;
 
     try {
 
         const user = await admin.auth().createUser({
-            email,
-            password,
-            displayName: `${name} ${surname}` });
+            email: email,
+            emailVerified: false,
+            password: password,
+            disabled: false,
+          });
 
-        const userDB = new User({ name, email, surname, provider: user.providerData[0].providerId });
+        const userDB = new User({ name, email, rol, surname, f_uid: user.uid});
 
         await userDB.save();
 
@@ -35,25 +41,69 @@ const createUser = async(req, res = response) => {
 
 const getUsers = async(req, res) => {
 
-    const user = await User.find({ state: true });
+    console.log(req.userAuth);
+    console.log(req.fbUid);
 
+    const { limit, from } = req.query;
+    const query = {state: true};
+
+    let [total, users] = await Promise.all([
+        User.count(query),
+        User.find(query)
+            .skip(Number(from - 1))
+            .limit(Number(limit))
+    ]);
+    
     res.status(200).json({
-        user
+        total,
+        users
     });
 }
 
 const updateUser = async(req, res) => {
 
-    res.json({
-        msg: 'ok put'
-    })
+    const { id } = req.params;
+
+    let { _id, email, role, name, surname, job, password, ...rest } = req.body;
+
+    if (name) {
+        rest.name = name.toLowerCase();
+    }
+
+    if (surname) {
+        rest.surname = surname.toLowerCase();
+    }
+
+    if (job) {
+        rest.job = job.toLowerCase();
+    }
+
+    if (password) {
+        rest.password = password;
+    }
+
+    await admin.auth().updateUser(req.fbUid, {
+        password,
+        disabled: false });
+
+    const userDB = await User.findByIdAndUpdate(id, rest, {new: true} );
+
+    res.status(200).json(userDB);
 }
 
 const deleteUser = async(req, res) => {
 
-    res.json({
-        msg: 'ok delete'
-    })
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    
+    await admin.auth().deleteUser(user.f_uid);
+
+    const userDB = await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+        userDB
+    });
 }
 
 module.exports = {
