@@ -30,10 +30,9 @@ const validateParkingByID = async(id = '') =>  {
 const validateParkingByLocation = async(location = '') => {
 
     const parkings = await Parking.findOne({ location });
+
     if (parkings) {
-        return res.status(400).json({
-            msg: 'Address is already registered' 
-        });
+        throw new Error('Address is already registered');
     }
 }
 
